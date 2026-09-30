@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>PC방 부팅 팝업 레이아웃 예시</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --brand:#665BC8; --brand-deep:#4B3FB0; --brand-soft:#EEECFA;
+  --ink:#1F1D2B; --sub:#6B6880; --line:#E4E2EE; --bg:#F3F2F8; --card:#FFFFFF;
+  --ok:#1E9E6A; --err:#D6364A; --frame:#2B2838; --gold:#F2B233;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --brand:#8C82E6; --brand-deep:#A79FF0; --brand-soft:#2A2748;
+    --ink:#F1F0F7; --sub:#A6A3BA; --line:#34324A; --bg:#15141F; --card:#1E1D2B; --ok:#3CC88D; --err:#F0677A; --frame:#0C0B12;
+  }
+}
+:root[data-theme="dark"]{
+  --brand:#8C82E6; --brand-deep:#A79FF0; --brand-soft:#2A2748;
+  --ink:#F1F0F7; --sub:#A6A3BA; --line:#34324A; --bg:#15141F; --card:#1E1D2B; --ok:#3CC88D; --err:#F0677A; --frame:#0C0B12;
+}
+*,*::before,*::after{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Noto Sans KR",-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;line-height:1.5}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible{outline:3px solid var(--brand);outline-offset:2px}
+[hidden]{display:none!important}
+
+/* nav */
+.nav{display:flex;justify-content:center;padding:20px 16px 0}
+.seg{display:inline-flex;flex-wrap:wrap;justify-content:center;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:4px;gap:2px}
+.seg button{border:0;background:none;padding:8px 14px;border-radius:9px;font-size:13px;color:var(--sub)}
+.seg button[aria-pressed="true"]{background:var(--brand);color:#fff;font-weight:700}
+.wrap{display:flex;gap:28px;justify-content:center;align-items:flex-start;padding:20px 16px 40px;flex-wrap:wrap}
+
+/* shared */
+.xbtn{background:var(--brand);color:#fff;border:0;border-radius:10px;padding:9px 12px;font-size:13px;font-weight:700;white-space:nowrap}
+.xbtn:disabled{background:var(--line);color:var(--sub);cursor:not-allowed}
+.xbtn.alt{background:var(--brand-soft);color:var(--brand)}
+.overlay{position:absolute;inset:0;background:rgba(20,18,32,.5);display:none;z-index:10}
+.overlay.show{display:flex}
+.row2{display:flex;gap:8px;margin-top:18px}
+.row2 button{flex:1;border-radius:12px;padding:13px;font-weight:700;border:0}
+.ghost{background:var(--bg)}
+.solid{background:var(--brand);color:#fff}
+.toast{position:absolute;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:var(--card);padding:11px 16px;border-radius:12px;font-size:13px;z-index:60;display:none;white-space:nowrap}
+.toast.show{display:block}
+.rtable{width:100%;border-collapse:collapse;font-size:14px}
+.rtable td{padding:9px 0;border-bottom:1px solid var(--line)}
+.rtable td:nth-child(2){text-align:right;font-weight:700;color:var(--brand)}
+.rtable td:nth-child(3){text-align:right;color:var(--sub);font-size:12px;width:90px}
+.note{font-size:12px;color:var(--sub);margin:12px 0 0}
+.modal{margin:auto;background:var(--card);border-radius:20px;padding:28px;width:420px;max-width:92%}
+.modal h2{margin:0 0 6px;font-size:20px}
+.modal p{margin:0;font-size:14px;color:var(--sub)}
+.modal.wide{width:560px}
+.sheet{background:var(--card);width:100%;border-radius:22px 22px 0 0;padding:22px 20px 24px;max-height:85%;overflow-y:auto;margin-top:auto}
+.sheet h2{font-size:18px;margin:0 0 12px}
+.minus{color:var(--err);font-weight:700;white-space:nowrap}
+.plus{color:var(--ok);font-weight:700;white-space:nowrap}
+.stockline{font-size:11px;color:var(--sub);margin:0}
+
+/* ===== 1. PC boot popup ===== */
+.monitor{width:1000px;max-width:100%;border-radius:16px;border:12px solid var(--frame);overflow:hidden;position:relative;height:620px;
+  background:radial-gradient(ellipse at 20% 10%,#3A3470 0%,transparent 55%),radial-gradient(ellipse at 90% 90%,#1B5E6B 0%,transparent 50%),#121022}
+.desk-icons{position:absolute;left:20px;top:20px;display:grid;gap:18px}
+.desk-icons span{width:64px;text-align:center;color:#fff;font-size:11px;opacity:.8}
+.desk-icons i{display:block;width:44px;height:44px;margin:0 auto 4px;border-radius:10px;background:rgba(255,255,255,.14);font-style:normal;font-size:22px;line-height:44px}
+.taskbar{position:absolute;left:0;right:0;bottom:0;height:40px;background:rgba(10,9,20,.85);display:flex;align-items:center;justify-content:space-between;padding:0 14px;color:#fff;font-size:12px}
+.taskbar b{background:rgba(255,255,255,.12);padding:4px 10px;border-radius:6px;font-weight:500}
+.boot{position:absolute;left:50%;top:48%;transform:translate(-50%,-50%);width:380px;max-width:92%;background:var(--card);border-radius:20px;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,.45)}
+.boot-head{background:var(--brand);color:#fff;padding:22px 26px 20px;position:relative}
+.boot-head p{margin:0;font-size:13px;opacity:.85}
+.boot-head h1{margin:2px 0 0;font-size:28px;font-weight:900;letter-spacing:-.03em;line-height:1.15}
+.boot-x{position:absolute;right:14px;top:12px;background:rgba(255,255,255,.18);border:0;color:#fff;width:32px;height:32px;border-radius:50%;font-size:16px}
+.boot-body{display:flex;flex-direction:column}
+.boot-col{padding:20px 24px;display:flex;flex-direction:column;align-items:center;text-align:center}
+.bdesc{font-size:14px;color:var(--sub);margin:12px 0 12px;line-height:1.5}
+.shopicon{width:120px;height:120px;border-radius:16px;background:var(--brand-soft);display:grid;place-items:center;font-size:52px}
+.boot-col .bigbtn{margin-top:auto}
+.boot-col+.boot-col{border-top:1px solid var(--line)}
+.boot-col h2{font-size:16px;margin:0 0 4px}
+.boot-col>p{font-size:13px;color:var(--sub);margin:0 0 14px}
+.qrwrap{display:flex;gap:14px;align-items:center}
+#bootQr{width:120px;height:120px;margin:0 auto;background:#fff;padding:6px;border-radius:10px;border:1px solid var(--line);flex-shrink:0;display:grid;place-items:center}
+#bootQr img,#bootQr canvas{width:108px!important;height:108px!important}
+.chips{display:flex;flex-direction:column;gap:6px}
+.chips span{font-size:12px;background:var(--brand-soft);color:var(--brand);padding:4px 9px;border-radius:7px;font-weight:700;white-space:nowrap}
+.sim{margin-top:0;width:100%;background:none;border:1px dashed var(--brand);color:var(--brand);border-radius:10px;padding:8px;font-size:12px}
+.shopbox{background:var(--bg);border-radius:14px;padding:14px;margin-bottom:14px}
+.shopbox div{display:flex;justify-content:space-between;font-size:13px;padding:3px 0}
+.shopbox b{color:var(--brand)}
+.bigbtn{width:100%;background:var(--brand);color:#fff;border:0;border-radius:12px;padding:14px;font-size:15px;font-weight:700}
+.boot-foot{border-top:1px solid var(--line);padding:10px 24px;display:flex;justify-content:space-between;font-size:12px;color:var(--sub)}
+.reopen{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);background:rgba(255,255,255,.14);color:#fff;border:1px solid rgba(255,255,255,.3);border-radius:12px;padding:12px 18px;font-size:14px}
+
+/* ===== 2 & 4. phone ===== */
+.phone{width:380px;max-width:100%;height:760px;background:var(--card);border-radius:36px;border:10px solid var(--frame);overflow:hidden;position:relative;display:flex;flex-direction:column}
+.screen{flex:1;overflow-y:auto;position:relative}
+.top{background:var(--brand);color:#fff;padding:22px 20px 26px}
+.top .game{font-size:13px;opacity:.85;margin:0}
+.top h1{font-size:22px;font-weight:900;margin:2px 0 18px;letter-spacing:-.02em}
+.bal{display:flex;justify-content:space-between;align-items:flex-end}
+.bal .label{font-size:13px;opacity:.85}
+.bal .num{font-size:40px;font-weight:900;letter-spacing:-.03em;line-height:1}
+.bal .num small{font-size:18px;font-weight:700;margin-left:2px}
+.bal .login{font-size:15px;font-weight:700;background:rgba(255,255,255,.18);border:0;color:#fff;padding:8px 14px;border-radius:10px;margin-top:4px}
+.rule-btn{background:rgba(255,255,255,.18);border:0;color:#fff;font-size:12px;padding:7px 12px;border-radius:20px}
+.expire{font-size:12px;opacity:.8;margin-top:8px}
+.tabs{display:flex;border-bottom:1px solid var(--line);background:var(--card);position:sticky;top:0;z-index:2}
+.tabs button{flex:1;background:none;border:0;padding:13px 0;font-size:14px;color:var(--sub);border-bottom:2px solid transparent}
+.tabs button[aria-selected="true"]{color:var(--brand);font-weight:700;border-color:var(--brand)}
+.mgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:20px 12px;padding:16px 16px 24px}
+.gcard{display:flex;flex-direction:column;min-width:0}
+.gthumb{position:relative;aspect-ratio:1;border-radius:10px;background:var(--brand-soft);display:grid;place-items:center;font-size:48px}
+.gbadge{position:absolute;left:0;bottom:0;background:var(--ink);color:var(--card);font-size:10px;font-weight:700;padding:3px 6px;border-radius:0 6px 0 10px}
+.gname{font-size:14px;margin:8px 0 0;line-height:1.35;min-height:38px;word-break:keep-all}
+.gcost{font-size:17px;font-weight:900;color:var(--brand);margin:2px 0 2px}
+.gcard .stockline{margin-bottom:6px;min-height:16px}
+.gbtn{margin-top:auto;padding:9px 4px;font-size:13px;border-radius:9px}
+.hist{padding:8px 20px 24px}
+.hrow{padding:14px 0;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:12px;font-size:14px}
+.hrow .meta{font-size:12px;color:var(--sub)}
+.empty{color:var(--sub);font-size:14px;text-align:center;padding:48px 0}
+.phone .overlay{align-items:flex-end}
+
+/* counter + done */
+.counter{position:absolute;inset:0;background:var(--brand);color:#fff;z-index:20;display:none;flex-direction:column;padding:22px 22px 20px}
+.counter.show{display:flex}
+.counter .back{background:none;border:0;color:#fff;font-size:14px;opacity:.85;align-self:flex-start;padding:0}
+.counter .prod{margin-top:18px;font-size:14px;opacity:.85}
+.counter .big{font-size:30px;font-weight:900;margin:2px 0 4px;letter-spacing:-.02em}
+.counter .guide{font-size:14px;opacity:.9;margin:0}
+.dots{display:flex;gap:14px;justify-content:center;margin:30px 0 8px}
+.dots span{width:16px;height:16px;border-radius:50%;border:2px solid #fff}
+.dots span.on{background:#fff}
+.dots.shake{animation:shake .35s}
+@keyframes shake{25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
+.msg{text-align:center;font-size:13px;min-height:20px;margin:0}
+.msg.err{color:#FFD6DC;font-weight:700}
+.pad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:auto}
+.pad button{background:rgba(255,255,255,.14);border:0;color:#fff;font-size:24px;font-weight:700;padding:14px 0;border-radius:14px}
+.pad button:active{background:rgba(255,255,255,.28)}
+.pad .fn{font-size:14px;font-weight:500}
+.staff{text-align:center;font-size:12px;opacity:.75;margin:10px 0 0}
+.done{position:absolute;inset:0;background:var(--card);z-index:30;display:none;flex-direction:column;align-items:center;justify-content:center;padding:28px;text-align:center}
+.done.show{display:flex}
+.check{width:84px;height:84px;border-radius:50%;background:var(--ok);display:grid;place-items:center;color:#fff;font-size:44px;font-weight:900;animation:pop .4s ease-out}
+@keyframes pop{0%{transform:scale(.5);opacity:0}100%{transform:scale(1);opacity:1}}
+.done h2{font-size:24px;margin:18px 0 4px}
+.done dl{width:100%;margin:22px 0;font-size:14px;border-top:1px solid var(--line)}
+.done dl div{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--line)}
+.done dt{color:var(--sub)}
+.done dd{margin:0;font-weight:700}
+.done .solid{width:100%;border-radius:12px;padding:14px;border:0;font-weight:700}
+
+/* QR event page */
+.evtop{text-align:center;padding-bottom:24px}
+.evsub{margin:0;font-size:14px;opacity:.9}
+.evtop .wheel-wrap{margin:18px auto 18px}
+.evtop .pointer,.evhero .pointer{border-top-color:#fff}
+.evtop .wheel,.evhero .wheel{border-color:#fff}
+.spin.spinBtn{background:#fff;color:var(--brand)}
+.spin.spinBtn:disabled{background:rgba(255,255,255,.3);color:#fff}
+.evhero{background:var(--brand);color:#fff;padding:30px 40px 34px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:18px}
+.evtext p{margin:0;opacity:.85;font-size:14px}
+.evtext h1{margin:4px 0 6px;font-size:40px;font-weight:900;letter-spacing:-.03em;line-height:1.1}
+.evtext .evsub{font-size:16px;opacity:.9;margin:0}
+.evhero .spin{width:300px}
+.wheel-wrap.big{width:300px;height:300px;margin:0;flex-shrink:0}
+.wheel-wrap.big .wheel span{font-size:13px;width:110px;margin-left:-55px}
+.evpc{display:grid;grid-template-columns:1.3fr 1fr;gap:32px;padding:30px 60px 40px}
+.evpc h2{font-size:18px;margin:0 0 12px}
+.evpc .ev-rules{font-size:13px;margin:0}
+.ev-info{padding:18px 20px 6px}
+.ev-info h2{font-size:16px;margin:0 0 10px}
+.prizes{list-style:none;padding:0;margin:0;display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.prizes li{background:var(--bg);border-radius:10px;padding:8px 10px;font-size:12px;display:flex;align-items:center;gap:6px}
+.prizes li.out{opacity:.45;text-decoration:line-through}
+.ev-rules{font-size:12px;color:var(--sub);margin:12px 0 0;padding-left:16px}
+.ev-rules li{margin-bottom:3px}
+.ev-act{padding:18px 20px 28px;text-align:center;border-top:8px solid var(--bg);margin-top:16px}
+.wheel-wrap{position:relative;width:250px;height:250px;margin:6px auto 18px}
+.pointer{position:absolute;left:50%;top:-6px;transform:translateX(-50%);width:0;height:0;border-left:13px solid transparent;border-right:13px solid transparent;border-top:24px solid var(--ink);z-index:2}
+.wheel{width:100%;height:100%;border-radius:50%;border:6px solid var(--brand);position:relative;transition:transform 3.6s cubic-bezier(.17,.67,.2,1);
+  background:conic-gradient(#8C82E6 0 72deg,#B7B0F2 72deg 144deg,#665BC8 144deg 216deg,#D9D5F8 216deg 288deg,#4B3FB0 288deg 360deg)}
+.wheel span{position:absolute;left:50%;top:50%;width:92px;margin-left:-46px;text-align:center;font-size:11px;font-weight:700;line-height:1.25;color:#fff;transform-origin:center}
+.wheel span.dark{color:#2B2560}
+.hub{position:absolute;left:50%;top:50%;width:54px;height:54px;margin:-27px 0 0 -27px;border-radius:50%;background:var(--card);border:4px solid var(--brand);display:grid;place-items:center;font-size:11px;font-weight:900;color:var(--brand);z-index:1}
+.spin{width:100%;background:var(--brand);color:#fff;border:0;border-radius:14px;padding:15px;font-size:16px;font-weight:900}
+.spin:disabled{background:var(--line);color:var(--sub);cursor:not-allowed}
+.result{text-align:center}
+.modal.result h2{font-size:22px;margin:6px 0 4px}
+.result .emoji{font-size:54px;animation:pop .4s ease-out}
+.result h2{font-size:22px;margin:6px 0 4px}
+.result p{margin:0;font-size:13px;color:var(--sub)}
+
+/* ===== 3. PC point shop ===== */
+.browser{width:1000px;max-width:100%;background:var(--card);border-radius:14px;border:1px solid var(--line);overflow:hidden;position:relative;box-shadow:0 20px 50px rgba(40,30,90,.12)}
+.bbar{display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--bg);border-bottom:1px solid var(--line)}
+.bbar i{width:11px;height:11px;border-radius:50%;background:var(--line);display:inline-block;margin-right:5px}
+.url{flex:1;background:var(--card);border-radius:8px;padding:5px 12px;font-size:12px;color:var(--sub)}
+.pcbody{height:680px;overflow-y:auto}
+.gnb{display:flex;justify-content:space-between;align-items:center;padding:14px 40px;border-bottom:1px solid var(--line);font-size:13px;color:var(--sub)}
+.logo{font-weight:900;font-size:20px;color:var(--brand);letter-spacing:-.03em}
+.hero{background:var(--brand);color:#fff;padding:34px 40px;display:flex;justify-content:space-between;align-items:flex-end;gap:24px}
+.hero p{margin:0;opacity:.85;font-size:14px}
+.hero h1{margin:4px 0 0;font-size:32px;font-weight:900;letter-spacing:-.03em}
+.hbal{text-align:right}
+.hbal .num{font-size:48px;font-weight:900;line-height:1;letter-spacing:-.03em}
+.hbal .num small{font-size:20px;margin-left:2px}
+.hbal .exp{font-size:12px;opacity:.8;margin-top:6px}
+.hbal .login{font-size:16px;font-weight:700;background:rgba(255,255,255,.18);border:0;color:#fff;padding:9px 16px;border-radius:10px;margin-top:6px}
+.pc-rule{margin-top:12px;font-size:13px;padding:8px 14px}
+.pcbar{display:flex;justify-content:flex-end;padding:14px 40px 0}
+.histbtn{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px 16px;font-size:13px;font-weight:700;color:var(--ink)}
+.histbtn:hover{border-color:var(--brand);color:var(--brand)}
+.pcmain{padding:18px 40px 36px}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.pcard{border:1px solid var(--line);border-radius:16px;padding:18px;display:flex;flex-direction:column;gap:6px}
+.pcard .thumb{width:100%;aspect-ratio:1.6;border-radius:12px;background:var(--brand-soft);display:grid;place-items:center;font-size:40px;margin-bottom:6px}
+.pcard .name{font-weight:700;margin:0}
+.pcard .desc{font-size:12px;color:var(--sub);margin:0;min-height:36px}
+.pcard .cost{font-weight:900;color:var(--brand);font-size:18px;margin:0}
+.pcard .stockline{margin-bottom:6px;min-height:16px}
+.pcard .xbtn{padding:11px;margin-top:auto}
+.tag{align-self:flex-start;font-size:11px;background:var(--bg);color:var(--sub);padding:3px 8px;border-radius:6px}
+.pchist{max-height:360px;overflow-y:auto}
+.pchist table{width:100%;border-collapse:collapse;font-size:14px}
+.pchist th{text-align:left;font-weight:500;color:var(--sub);font-size:12px;padding:8px 0;border-bottom:1px solid var(--line)}
+.pchist td{padding:11px 0;border-bottom:1px solid var(--line)}
+.pchist td:last-child,.pchist th:last-child{text-align:right}
+.qrbox{display:flex;gap:20px;align-items:center;margin-top:20px;padding:18px;background:var(--bg);border-radius:14px}
+#shopQr{width:132px;height:132px;background:#fff;padding:8px;border-radius:8px;flex-shrink:0;display:grid;place-items:center}
+#shopQr img,#shopQr canvas{width:116px!important;height:116px!important}
+.steps{margin:0;padding-left:18px;font-size:13px;color:var(--ink)}
+.steps li{margin-bottom:6px}
+
+/* test panel */
+.panel{width:320px;max-width:100%;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:20px}
+.panel h2{font-size:16px;margin:0 0 4px}
+.panel>p{font-size:13px;color:var(--sub);margin:0 0 6px}
+.panel h3{font-size:13px;margin:18px 0 8px}
+.pins{width:100%;border-collapse:collapse;font-size:13px}
+.pins td{padding:7px 0;border-bottom:1px solid var(--line)}
+.pins td:last-child{text-align:right;font-weight:700;font-variant-numeric:tabular-nums}
+.tgrid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.tgrid button{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:9px 6px;font-size:12px}
+.tgrid button b{color:var(--brand)}
+.tgrid button:disabled{opacity:.45;cursor:not-allowed}
+.stat{font-size:12px;color:var(--sub);margin:6px 0 0}
+.reset{width:100%;margin-top:14px;background:none;border:1px solid var(--line);border-radius:10px;padding:10px;font-size:13px;color:var(--sub)}
+
+@media (max-width:860px){.evhero{padding:28px 24px}.evpc{grid-template-columns:1fr;padding:24px}.evtext{text-align:center}.grid{grid-template-columns:1fr 1fr}.hero{flex-direction:column;align-items:flex-start}.hbal{text-align:left}.monitor{height:auto;min-height:760px}}
+@media (max-width:560px){.grid{grid-template-columns:1fr}.gnb,.hero,.pcmain,.pcbar{padding-left:18px;padding-right:18px}.qrbox{flex-direction:column}.boot-head h1{font-size:26px}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}.wheel{transition:none}}
+</style>
+</head>
+<body>
+
+<div class="nav">
+  <div class="seg" role="group" aria-label="화면 선택">
+    <button data-view="boot" aria-pressed="true">① PC 부팅 팝업</button>
+    <button data-view="qr" aria-pressed="false">② QR 이벤트 (휴대폰)</button>
+    <button data-view="qrpc" aria-pressed="false">③ QR 이벤트 (PC)</button>
+    <button data-view="pcshop" aria-pressed="false">④ 포인트샵 (PC)</button>
+    <button data-view="moshop" aria-pressed="false">⑤ 포인트샵 (휴대폰)</button>
+  </div>
+</div>
+
+<div class="wrap">
+
+<!-- ================= ① BOOT POPUP ================= -->
+<div class="monitor" id="v-boot" aria-label="PC방 PC 화면">
+  <div class="desk-icons" aria-hidden="true">
+    <span><i>⚽</i>FC온라인</span><span><i>🎮</i>배틀넷</span><span><i>🌐</i>크롬</span><span><i>🍜</i>매점 주문</span>
+  </div>
+  <button class="reopen" id="reopen" hidden>팝업 다시 보기</button>
+  <div class="boot" id="boot" role="dialog" aria-labelledby="bootT">
+    <div class="boot-head">
+      <p>아이템베이 × PC방</p>
+      <h1 id="bootT">QR 찍고, 선물 받자!</h1>
+      <button class="boot-x" id="bootClose" aria-label="팝업 닫기">✕</button>
+    </div>
+    <div class="boot-body">
+      <div class="boot-col">
+        <div id="bootQr" aria-label="QR 이벤트 페이지 QR"></div>
+        <p class="bdesc">휴대폰으로 QR 찍고<br>룰렛 돌려 선물 받기</p>
+        <button class="sim" id="simQr">(테스트) QR 스캔</button>
+      </div>
+      <div class="boot-col">
+        <p class="bdesc">FC온라인 거래하고 모은 포인트로<br>매점 음료·기프트카드 교환</p>
+        <button class="bigbtn" id="goShop">FC온라인 포인트샵</button>
+      </div>
+    </div>
+  </div>
+  <div class="taskbar" aria-hidden="true"><b>⊞ 시작</b><span>PC방 좌석 23번 · 이용 중</span></div>
+  <div class="toast" id="bootToast" role="status"></div>
+</div>
+
+<!-- ================= ② QR EVENT (PHONE) ================= -->
+<div class="phone" id="v-qr" hidden aria-label="휴대폰 QR 이벤트 화면">
+  <div class="screen">
+    <header class="top evtop">
+      <p class="game">아이템베이 × PC방</p>
+      <h1 style="margin-bottom:2px">QR 찍고, 선물 받자!</h1>
+      <p class="evsub">하루 한 번, 꽝 없는 룰렛</p>
+      <div class="wheel-wrap">
+        <div class="pointer" aria-hidden="true"></div>
+        <div class="wheel" aria-hidden="true"></div>
+        <div class="hub" aria-hidden="true">GO</div>
+      </div>
+      <button class="spin spinBtn">룰렛 돌리기</button>
+    </header>
+    <section class="ev-info">
+      <h2>이벤트 상품</h2>
+      <ul class="prizes prizeList"></ul>
+      <h2 style="margin-top:18px">유의사항</h2>
+      <ul class="ev-rules">
+        <li>아이템베이 ID당 1일 1회 참여 가능</li>
+        <li>할인쿠폰은 FC온라인 전용, 발급일시로부터 14일</li>
+        <li>구글기프트카드는 당첨 즉시 핀번호 자동 발송</li>
+        <li>구글기프트카드 월 한도 소진 시 이벤트에서 제외</li>
+      </ul>
+    </section>
+  </div>
+  <div class="overlay" id="loginOv">
+    <div class="sheet" role="dialog" aria-labelledby="lgT">
+      <h2 id="lgT">로그인 필요</h2>
+      <p style="margin:0;font-size:14px;color:var(--sub)">참여하려면 아이템베이 로그인 필요. 아직 회원이 아니라면 가입 후 바로 참여 가능.</p>
+      <div class="row2"><button class="ghost" data-close="loginOv">취소</button><button class="solid" data-login="loginOv">로그인 (테스트)</button></div>
+    </div>
+  </div>
+  <div class="overlay" id="resultOv">
+    <div class="sheet result" role="dialog" aria-labelledby="rsT">
+      <div class="emoji rsEmoji"></div>
+      <h2 class="rsT" id="rsT"></h2>
+      <p class="rsBody"></p>
+      <div class="row2"><button class="solid" data-close="resultOv">확인</button></div>
+    </div>
+  </div>
+  <div class="toast" id="qrToast" role="status"></div>
+</div>
+
+<!-- ================= ③ QR EVENT (PC) ================= -->
+<div class="browser" id="v-qrpc" hidden>
+  <div class="bbar"><span><i></i><i></i><i></i></span><div class="url">itembay.com/event/pcbang-qr</div></div>
+  <div class="pcbody">
+    <div class="gnb"><span class="logo">itemBay</span><span class="gnbLogin">마이페이지 | 고객감동센터 | 로그인</span></div>
+    <section class="evhero">
+      <div class="evtext">
+        <p>아이템베이 × PC방</p>
+        <h1>QR 찍고, 선물 받자!</h1>
+        <p class="evsub">하루 한 번, 꽝 없는 룰렛</p>
+      </div>
+      <div class="wheel-wrap big">
+        <div class="pointer" aria-hidden="true"></div>
+        <div class="wheel" aria-hidden="true"></div>
+        <div class="hub" aria-hidden="true">GO</div>
+      </div>
+      <button class="spin spinBtn">룰렛 돌리기</button>
+    </section>
+    <div class="evpc">
+      <section><h2>이벤트 상품</h2><ul class="prizes prizeList"></ul></section>
+      <section><h2>유의사항</h2>
+        <ul class="ev-rules">
+          <li>아이템베이 ID당 1일 1회 참여 가능</li>
+          <li>할인쿠폰은 FC온라인 전용, 발급일시로부터 14일</li>
+          <li>구글기프트카드는 당첨 즉시 핀번호 자동 발송</li>
+          <li>구글기프트카드 월 한도 소진 시 이벤트에서 제외</li>
+        </ul>
+      </section>
+    </div>
+  </div>
+  <div class="overlay" id="qrpcLogin"><div class="modal" role="dialog" aria-labelledby="qpLgT">
+    <h2 id="qpLgT">로그인 필요</h2><p>참여하려면 아이템베이 로그인 필요. 아직 회원이 아니라면 가입 후 바로 참여 가능.</p>
+    <div class="row2"><button class="ghost" data-close="qrpcLogin">취소</button><button class="solid" data-login="qrpcLogin">로그인 (테스트)</button></div></div></div>
+  <div class="overlay" id="qrpcResult"><div class="modal result" role="dialog" aria-labelledby="qpRsT">
+    <div class="emoji rsEmoji"></div><h2 class="rsT" id="qpRsT"></h2><p class="rsBody"></p>
+    <div class="row2"><button class="solid" data-close="qrpcResult">확인</button></div></div></div>
+  <div class="toast" id="qrpcToast" role="status"></div>
+</div>
+
+<!-- ================= ③ PC POINT SHOP ================= -->
+<div class="browser" id="v-pcshop" hidden>
+  <div class="bbar"><span><i></i><i></i><i></i></span><div class="url">itembay.com/event/fc-pointshop</div></div>
+  <div class="pcbody">
+    <div class="gnb"><span class="logo">itemBay</span><span class="gnbLogin">마이페이지 | 고객감동센터 | 로그인</span></div>
+    <section class="hero">
+      <div>
+        <p>아이템베이 × PC방</p>
+        <h1>FC온라인 포인트샵</h1>
+        <p style="margin-top:8px">거래하고 모은 포인트로 매점 음료부터 할인쿠폰까지 교환</p>
+      </div>
+      <div class="hbal">
+        <p>보유 포인트</p>
+        <div class="balBox"></div>
+        <div class="exp">포인트는 적립일시로부터 30일 후 소멸됨</div>
+        <button class="rule-btn pc-rule" data-open="pcRule">적립 기준 보기</button>
+      </div>
+    </section>
+    <div class="pcbar"><button class="histbtn" data-open="pcHistOv">포인트 내역</button></div>
+    <div class="pcmain"><div class="grid" id="pcGrid"></div></div>
+  </div>
+  <div class="overlay" id="pcHistOv"><div class="modal wide" role="dialog" aria-labelledby="pcHiT">
+    <h2 id="pcHiT" style="margin-bottom:10px">포인트 내역</h2>
+    <div class="pchist"><table><thead><tr><th>일시</th><th>내용</th><th>매장</th><th>포인트</th></tr></thead><tbody id="pcHist"></tbody></table></div>
+    <div class="row2"><button class="solid" data-close="pcHistOv">닫기</button></div></div></div>
+  <div class="overlay" id="pcRule"><div class="modal" role="dialog" aria-labelledby="pcRuT">
+    <h2 id="pcRuT" style="margin-bottom:14px">포인트 적립 기준</h2><div class="ruleHtml"></div>
+    <div class="row2"><button class="solid" data-close="pcRule">확인</button></div></div></div>
+  <div class="overlay" id="pcConfirm"><div class="modal" role="dialog" aria-labelledby="pcCfT">
+    <h2 id="pcCfT">교환 확인</h2><p id="pcCfBody"></p>
+    <div class="row2"><button class="ghost" data-close="pcConfirm">취소</button><button class="solid" id="pcCfOk">교환하기</button></div></div></div>
+  <div class="overlay" id="pcLogin"><div class="modal" role="dialog" aria-labelledby="pcLgT">
+    <h2 id="pcLgT">로그인 필요</h2><p>상품 교환은 아이템베이 로그인 후 가능</p>
+    <div class="row2"><button class="ghost" data-close="pcLogin">취소</button><button class="solid" data-login="pcLogin">로그인 (테스트)</button></div></div></div>
+  <div class="overlay" id="pcPhone"><div class="modal" role="dialog" aria-labelledby="pcPhT">
+    <h2 id="pcPhT">냉장음료는 휴대폰으로 교환</h2>
+    <p>매점 카운터에서 직원 확인이 필요한 상품이라 휴대폰에서만 교환 가능</p>
+    <div class="qrbox">
+      <div id="shopQr" aria-label="포인트샵 모바일 QR"></div>
+      <ol class="steps"><li>휴대폰으로 QR 스캔</li><li>같은 아이디로 로그인</li><li>[교환하기] 누르고 매점 카운터에서 화면 제시</li></ol>
+    </div>
+    <p class="note">PIN 입력 전까지 포인트는 차감되지 않음</p>
+    <button class="sim" id="simShop">(테스트) QR 스캔한 것처럼 휴대폰 화면으로 이동</button>
+    <div class="row2"><button class="solid" data-close="pcPhone">닫기</button></div></div></div>
+  <div class="toast" id="pcshopToast" role="status"></div>
+</div>
+
+<!-- ================= ④ MOBILE POINT SHOP ================= -->
+<div class="phone" id="v-moshop" hidden aria-label="휴대폰 포인트샵 화면">
+  <div class="screen">
+    <header class="top">
+      <p class="game">아이템베이 × PC방</p>
+      <h1>FC온라인 포인트샵</h1>
+      <div class="bal">
+        <div><div class="label">보유 포인트</div><div class="balBox"></div></div>
+        <button class="rule-btn" data-open="moRule">적립 기준 보기</button>
+      </div>
+      <div class="expire">포인트는 적립일시로부터 30일 후 소멸됨</div>
+    </header>
+    <nav class="tabs" role="tablist">
+      <button role="tab" aria-selected="true" data-tab="moShop">교환하기</button>
+      <button role="tab" aria-selected="false" data-tab="moHist">포인트 내역</button>
+    </nav>
+    <section id="moShop" class="mgrid"></section>
+    <section id="moHist" class="hist" hidden></section>
+  </div>
+  <div class="overlay" id="moRule"><div class="sheet" role="dialog" aria-labelledby="moRuT">
+    <h2 id="moRuT">포인트 적립 기준</h2><div class="ruleHtml"></div>
+    <div class="row2"><button class="solid" data-close="moRule">확인</button></div></div></div>
+  <div class="overlay" id="moConfirm"><div class="sheet" role="dialog" aria-labelledby="moCfT">
+    <h2 id="moCfT">교환 확인</h2><p id="moCfBody" style="margin:0;font-size:14px"></p>
+    <div class="row2"><button class="ghost" data-close="moConfirm">취소</button><button class="solid" id="moCfOk">교환하기</button></div></div></div>
+  <div class="overlay" id="moLogin"><div class="sheet" role="dialog" aria-labelledby="moLgT">
+    <h2 id="moLgT">로그인 필요</h2><p style="margin:0;font-size:14px;color:var(--sub)">상품 교환은 아이템베이 로그인 후 가능</p>
+    <div class="row2"><button class="ghost" data-close="moLogin">취소</button><button class="solid" data-login="moLogin">로그인 (테스트)</button></div></div></div>
+  <div class="counter" id="counter" role="dialog" aria-labelledby="ctT">
+    <button class="back" id="ctBack">← 취소</button>
+    <div class="prod">매점 교환</div>
+    <div class="big" id="ctT">냉장음료 1개</div>
+    <p class="guide">매점 카운터에서 직원에게 이 화면을 보여주세요</p>
+    <div class="dots" id="dots" aria-live="polite"><span></span><span></span><span></span><span></span></div>
+    <p class="msg" id="pinMsg"></p>
+    <div class="pad" id="pad"></div>
+    <p class="staff">직원 전용 입력 영역</p>
+  </div>
+  <div class="done" id="done" role="dialog" aria-labelledby="dnT">
+    <div class="check" aria-hidden="true">✓</div>
+    <h2 id="dnT">교환 완료</h2>
+    <p style="margin:0;color:var(--sub);font-size:14px">냉장음료 1개를 받아가세요</p>
+    <dl>
+      <div><dt>매장</dt><dd id="dnStore"></dd></div>
+      <div><dt>교환 시각</dt><dd id="dnTime"></dd></div>
+      <div><dt>교환번호</dt><dd id="dnNo"></dd></div>
+      <div><dt>차감 포인트</dt><dd>20P</dd></div>
+      <div><dt>남은 포인트</dt><dd id="dnBal"></dd></div>
+    </dl>
+    <button class="solid" id="dnOk">확인</button>
+  </div>
+  <div class="toast" id="moshopToast" role="status"></div>
+</div>
+
+<!-- ================= TEST PANEL ================= -->
+<aside class="panel" aria-label="테스트 도구">
+  <h2>테스트 도구</h2>
+  <p>실제 화면엔 없는 영역. 모든 화면은 같은 계정 기준으로 상태 공유.</p>
+  <h3>계정</h3>
+  <div class="tgrid"><button id="tLogin"></button><button id="tDay">하루 지나기</button></div>
+  <h3>QR 이벤트 · 이번 달 기프트카드 재고</h3>
+  <div class="tgrid"><button id="tOut10">10,000원 소진시키기</button><button id="tOut5">5,000원 소진시키기</button></div>
+  <p class="stat" id="qrStat"></p>
+  <h3>포인트 쌓기 (FC온라인 거래 기준)</h3>
+  <div class="tgrid" id="earn"></div>
+  <h3>매장 PIN (직원만 앎)</h3>
+  <table class="pins" id="pinTable"></table>
+  <button class="reset" id="reset">처음 상태로 되돌리기</button>
+</aside>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script>
+const $=id=>document.getElementById(id);
+const STORES={"1234":"아이템베이 PC방 부평점","5678":"아이템베이 PC방 신논현점","1111":"김완수 셰프 PC방 A점","2222":"김완수 셰프 PC방 B점"};
+const RULES=[["로그인","1P","1일 1회"],["신규가입","10P","최초 1회"],["물품등록","1P","1일 5건"],["물품구매","5P","제한 없음"],["판매완료","3P","제한 없음"]];
+const ITEMS=[
+  {id:"c1000",emoji:"🎟️",name:"할인쿠폰 1,000원",desc:"FC온라인 전용 · 25,000원 이상 거래 시 · 14일",cost:7,type:"online"},
+  {id:"c3000",emoji:"🎟️",name:"할인쿠폰 3,000원",desc:"FC온라인 전용 · 75,000원 이상 거래 시 · 14일",cost:20,type:"online"},
+  {id:"drink",emoji:"🥫",name:"냉장음료 1개",desc:"제휴 PC방 매점 카운터에서 교환",cost:20,type:"counter",stock:"drink",max:250},
+  {id:"c5000",emoji:"🎟️",name:"할인쿠폰 5,000원",desc:"FC온라인 전용 · 120,000원 이상 거래 시 · 14일",cost:35,type:"online"},
+  {id:"g5000",emoji:"🎁",name:"구글기프트카드 5,000원",desc:"교환 즉시 핀번호 자동 발송 · ID당 월 1장",cost:50,type:"online",stock:"ps5",max:40,perId:true},
+  {id:"g10000",emoji:"🎁",name:"구글기프트카드 10,000원",desc:"교환 즉시 핀번호 자동 발송 · ID당 월 1장",cost:120,type:"online",stock:"ps10",max:20,perId:true}
+];
+const EARN=[{k:"로그인",p:1,cap:1},{k:"신규가입",p:10,cap:1,once:true},{k:"물품등록",p:1,cap:5},{k:"물품구매",p:5},{k:"판매완료",p:3}];
+// wheel: 5 equal segments, clockwise from top
+const SEG=[
+  {id:"g10",label:"구글기프트카드<br>10,000원",emoji:"🎁",p:0.2,stock:"qr10",dark:false},
+  {id:"g5",label:"구글기프트카드<br>5,000원",emoji:"🎁",p:0.8,stock:"qr5",dark:true},
+  {id:"c5",label:"할인쿠폰<br>5,000원",emoji:"🎟️",p:1,dark:false,cond:"120,000원"},
+  {id:"c3",label:"할인쿠폰<br>3,000원",emoji:"🎟️",p:6,dark:true,cond:"75,000원"},
+  {id:"c1",label:"할인쿠폰<br>1,000원",emoji:"🎟️",p:92,dark:false,cond:"25,000원"}
+];
+let state,view="boot",pending=null,pin="",rot=0,spinning=false;
+function now(){return new Date().toLocaleString("ko-KR",{month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"});}
+function init(){
+  state={login:false,bal:100,hist:[{t:"시작 포인트 (테스트)",p:100,at:now()}],daily:{},signed:false,qrToday:false,
+    stock:{qr10:20,qr5:40,ps5:40,ps10:20,drink:250},taken:{g5000:false,g10000:false}};
+  render();
+}
+function toast(t){const el=$(view+"Toast");if(!el)return;el.textContent=t;el.classList.add("show");clearTimeout(el._t);el._t=setTimeout(()=>el.classList.remove("show"),1900);}
+
+/* ---------- render ---------- */
+function btnState(it,pc){
+  if(state.login && it.perId && state.taken[it.id]) return {dis:true,txt:"이번 달 교환 완료"};
+  if(it.stock && state.stock[it.stock]<=0) return {dis:true,txt:"이번 달 마감"};
+  if(state.login && it.cost>state.bal) return {dis:true,txt:(it.cost-state.bal)+"P 부족"};
+  if(pc && it.type==="counter") return {dis:false,txt:"휴대폰으로 교환",alt:true};
+  return {dis:false,txt:"교환하기"};
+}
+function stockTxt(it){return it.stock?`이번 달 남은 수량 ${state.stock[it.stock]}/${it.max}`:"";}
+function render(){
+  const balHTML=state.login?`<div class="num">${state.bal}<small>P</small></div>`:`<button class="login" data-login="">로그인하고 포인트 확인</button>`;
+  document.querySelectorAll(".balBox").forEach(e=>e.innerHTML=balHTML);
+  document.querySelectorAll(".gnbLogin").forEach(e=>e.textContent="마이페이지 | 고객감동센터 | "+(state.login?"로그아웃":"로그인"));
+  const ruleHTML=`<table class="rtable">${RULES.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td></tr>`).join("")}</table>
+    <p class="note">물품등록·물품구매·판매완료는 FC온라인 거래만 인정<br>판매완료는 등록한 물품의 거래가 최종 완료된 경우에 한해 지급</p>`;
+  document.querySelectorAll(".ruleHtml").forEach(e=>e.innerHTML=ruleHTML);
+  $("pcGrid").innerHTML=ITEMS.map(it=>{const b=btnState(it,true);const counter=it.type==="counter";
+    return `<div class="pcard"><div class="thumb" aria-hidden="true">${it.emoji}</div>
+      <span class="tag">${counter?"매점 카운터 교환":"온라인 즉시 지급"}</span>
+      <p class="name">${it.name}</p><p class="desc">${it.desc}</p><p class="cost">${it.cost}P</p><p class="stockline">${stockTxt(it)}</p>
+      <button class="xbtn ${b.alt?"alt":""}" data-pc="${it.id}" ${b.dis?"disabled":""}>${b.txt}</button></div>`;}).join("");
+  $("moShop").innerHTML=ITEMS.map(it=>{const b=btnState(it,false);const counter=it.type==="counter";
+    return `<div class="gcard"><div class="gthumb" aria-hidden="true">${it.emoji}${counter?'<span class="gbadge">매점</span>':''}</div>
+      <p class="gname">${it.name}</p><p class="gcost">${it.cost}P</p><p class="stockline">${stockTxt(it)}</p>
+      <button class="xbtn gbtn" data-mo="${it.id}" ${b.dis?"disabled":""}>${b.txt}</button></div>`;}).join("");
+  const h=state.hist.slice().reverse();
+  $("pcHist").innerHTML=h.map(x=>`<tr><td>${x.at}</td><td>${x.t}</td><td>${x.store||"-"}</td><td class="${x.p<0?"minus":"plus"}">${x.p>0?"+":""}${x.p}P</td></tr>`).join("");
+  $("moHist").innerHTML=state.login?(h.length?h.map(x=>`<div class="hrow"><div>${x.t}<div class="meta">${x.at}${x.store?" · "+x.store:""}</div></div><div class="${x.p<0?"minus":"plus"}">${x.p>0?"+":""}${x.p}P</div></div>`).join(""):`<div class="empty">아직 내역 없음</div>`):`<div class="empty">로그인 후 확인 가능</div>`;
+  // QR event
+  const plHTML=SEG.map(s=>{const out=s.stock&&state.stock[s.stock]<=0;
+    return `<li class="${out?"out":""}">${s.emoji} ${s.label.replace("<br>"," ")}${out?" (소진)":""}</li>`;}).join("");
+  document.querySelectorAll(".prizeList").forEach(e=>e.innerHTML=plHTML);
+  document.querySelectorAll(".wheel").forEach(w=>{const big=w.parentElement.classList.contains("big");const r=big?95:78;
+    w.innerHTML=SEG.map((s,i)=>{const a=i*72+36;const out=s.stock&&state.stock[s.stock]<=0;
+    return `<span class="${s.dark?"dark":""}" style="transform:rotate(${a}deg) translateY(-${r}px) rotate(${-a}deg) translateY(-50%)">${out?"소진":s.label}</span>`;}).join("");});
+  document.querySelectorAll(".spinBtn").forEach(sb=>{
+    if(state.qrToday){sb.disabled=true;sb.textContent="오늘 참여 완료 · 내일 다시 참여 가능";}
+    else{sb.disabled=spinning;sb.textContent="룰렛 돌리기";}});
+  // panel
+  $("tLogin").textContent=state.login?"로그아웃 하기":"로그인 하기";
+  $("qrStat").textContent=`QR 재고 · 10,000원 ${state.stock.qr10}/20 · 5,000원 ${state.stock.qr5}/40${state.qrToday?" · 오늘 참여 완료":""}`;
+  $("earn").innerHTML=EARN.map(e=>{const used=state.daily[e.k]||0;const off=(e.once&&state.signed)||(e.cap&&used>=e.cap);
+    return `<button data-earn="${e.k}" ${off?"disabled":""}>${e.k} <b>+${e.p}P</b>${e.cap&&!e.once?`<br><span style="color:var(--sub)">${used}/${e.cap}</span>`:""}</button>`;}).join("");
+}
+$("pinTable").innerHTML=Object.entries(STORES).map(([p,s])=>`<tr><td>${s}</td><td>${p}</td></tr>`).join("");
+
+/* ---------- view ---------- */
+const VIEWS={boot:"v-boot",qr:"v-qr",qrpc:"v-qrpc",pcshop:"v-pcshop",moshop:"v-moshop"};
+function setView(v){view=v;
+  document.querySelectorAll(".seg button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.view===v));
+  Object.entries(VIEWS).forEach(([k,id])=>$(id).hidden=k!==v);
+  if(v==="boot")drawQR("bootQr","https://itembay.com/event/pcbang-qr");
+}
+function drawQR(el,text){const box=$(el);if(box.dataset.done)return;box.dataset.done=1;
+  try{new QRCode(box,{text,width:116,height:116});}catch(e){box.innerHTML='<span style="font-size:12px;color:#666">QR 영역</span>';}}
+
+/* ---------- clicks ---------- */
+document.addEventListener("click",e=>{
+  const t=e.target.closest("button");if(!t)return;
+  if(t.dataset.view)setView(t.dataset.view);
+  if(t.dataset.close)$(t.dataset.close).classList.remove("show");
+  if(t.dataset.open)$(t.dataset.open).classList.add("show");
+  if(t.dataset.login!==undefined){state.login=true;if(t.dataset.login)$(t.dataset.login).classList.remove("show");render();toast("로그인 완료");}
+  if(t.dataset.tab){document.querySelectorAll("#v-moshop .tabs button").forEach(b=>b.setAttribute("aria-selected",b===t));
+    $("moShop").hidden=t.dataset.tab!=="moShop";$("moHist").hidden=t.dataset.tab!=="moHist";}
+  if(t.dataset.pc)openItem(t.dataset.pc,"pc");
+  if(t.dataset.mo)openItem(t.dataset.mo,"mo");
+  if(t.dataset.earn)earn(t.dataset.earn);
+});
+$("bootClose").onclick=()=>{$("boot").hidden=true;$("reopen").hidden=false;};
+$("reopen").onclick=()=>{$("boot").hidden=false;$("reopen").hidden=true;};
+$("goShop").onclick=()=>{setView("pcshop");};
+$("simQr").onclick=()=>{setView("qr");toast("휴대폰에서 QR 이벤트 페이지 열림");};
+$("simShop").onclick=()=>{$("pcPhone").classList.remove("show");setView("moshop");toast("휴대폰에서 포인트샵 열림");};
+
+/* ---------- point shop ---------- */
+function openItem(id,where){
+  pending=ITEMS.find(i=>i.id===id);
+  if(!state.login){$(where==="pc"?"pcLogin":"moLogin").classList.add("show");return;}
+  if(pending.type==="counter"){
+    if(where==="pc"){$("pcPhone").classList.add("show");drawQR("shopQr","https://itembay.com/event/fc-pointshop");return;}
+    pin="";drawDots();msg("직원이 매장 PIN 입력 시 20P 차감됨");$("counter").classList.add("show");return;
+  }
+  const extra=pending.perId?" 구글기프트카드는 교환 즉시 핀번호 자동 발송, ID당 월 1장.":" 교환 즉시 쿠폰함 지급.";
+  $(where+"CfBody").textContent=`${pending.name} 교환 시 ${pending.cost}P 차감됨.${extra}`;
+  $(where+"Confirm").classList.add("show");
+}
+function exchange(where){
+  state.bal-=pending.cost;state.hist.push({t:pending.name+" 교환",p:-pending.cost,at:now()});
+  if(pending.stock)state.stock[pending.stock]--; if(pending.perId)state.taken[pending.id]=true;
+  $(where+"Confirm").classList.remove("show");render();
+  toast(pending.perId?`${pending.name} 핀번호 발송 완료`:`${pending.name} 쿠폰함 지급 완료`);
+}
+$("pcCfOk").onclick=()=>exchange("pc");
+$("moCfOk").onclick=()=>exchange("mo");
+
+const keys=["1","2","3","4","5","6","7","8","9","지우기","0","확인"];
+$("pad").innerHTML=keys.map(k=>`<button class="${isNaN(k)?"fn":""}" data-k="${k}" aria-label="${k}">${k}</button>`).join("");
+$("pad").addEventListener("click",e=>{const k=e.target.closest("button")?.dataset.k;if(!k)return;
+  if(k==="지우기")pin=pin.slice(0,-1);else if(k==="확인"){submitPin();return;}
+  else if(pin.length<4){pin+=k;if(pin.length===4){drawDots();setTimeout(submitPin,180);return;}}
+  drawDots();});
+function drawDots(){[...$("dots").children].forEach((d,i)=>d.classList.toggle("on",i<pin.length));}
+function msg(t,err){$("pinMsg").textContent=t;$("pinMsg").className="msg"+(err?" err":"");}
+function submitPin(){
+  if(pin.length<4){msg("PIN 4자리를 모두 입력해야 함",true);return;}
+  const store=STORES[pin];
+  if(!store){msg("등록되지 않은 매장 PIN. 다시 입력 필요",true);$("dots").classList.remove("shake");void $("dots").offsetWidth;$("dots").classList.add("shake");pin="";setTimeout(drawDots,300);return;}
+  if(state.bal<20){msg("포인트 부족으로 교환 불가",true);pin="";drawDots();return;}
+  if(state.stock.drink<=0){msg("이번 달 냉장음료 교환 마감",true);pin="";drawDots();return;}
+  state.bal-=20;state.stock.drink--;
+  state.hist.push({t:"냉장음료 1개 교환",p:-20,at:now(),store});
+  $("dnStore").textContent=store;$("dnTime").textContent=now();$("dnNo").textContent="PC"+Date.now().toString().slice(-6);$("dnBal").textContent=state.bal+"P";
+  $("counter").classList.remove("show");$("done").classList.add("show");render();
+}
+$("ctBack").onclick=()=>{$("counter").classList.remove("show");toast("교환 취소됨. 포인트 차감 없음");};
+$("dnOk").onclick=()=>$("done").classList.remove("show");
+
+/* ---------- QR roulette ---------- */
+function draw(){
+  const pool=SEG.map(s=>({...s,w:s.p}));
+  pool.forEach(s=>{if(s.stock&&state.stock[s.stock]<=0){pool.find(x=>x.id==="c3").w+=s.w;s.w=0;}});
+  let r=Math.random()*100;for(const s of pool){if(r<s.w)return s;r-=s.w;}return pool[4];
+}
+function spinClick(){
+  if(state.qrToday||spinning)return;
+  if(!state.login){$(view==="qr"?"loginOv":"qrpcLogin").classList.add("show");return;}
+  const s=draw();const idx=SEG.findIndex(x=>x.id===s.id);
+  const target=360-(idx*72+36)+(Math.random()*40-20);
+  rot=rot-(rot%360)+360*5+target;spinning=true;render();
+  document.querySelectorAll(".wheel").forEach(w=>w.style.transform=`rotate(${rot}deg)`);
+  const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
+  setTimeout(()=>{spinning=false;state.qrToday=true;
+    let body;
+    if(s.stock){state.stock[s.stock]--;body="핀번호가 아이템베이 쪽지함으로 자동 발송됨";}
+    else body=`FC온라인 전용 · ${s.cond} 이상 거래 시 사용 · 발급일시로부터 14일`;
+    state.hist.push({t:"QR 이벤트 · "+s.label.replace("<br>"," ")+" 당첨",p:0,at:now()});
+    state.hist.pop(); // QR 당첨은 포인트 내역에 남기지 않음
+    const ov=$(view==="qr"?"resultOv":"qrpcResult");
+    ov.querySelector(".rsEmoji").textContent=s.emoji;ov.querySelector(".rsT").textContent=s.label.replace("<br>"," ")+" 당첨!";ov.querySelector(".rsBody").textContent=body;
+    ov.classList.add("show");render();
+  },reduce?50:3700);
+}
+document.addEventListener("click",e=>{if(e.target.closest(".spinBtn"))spinClick();});
+
+/* ---------- test panel ---------- */
+function earn(k){const e=EARN.find(x=>x.k===k);state.login=true;if(e.once)state.signed=true;
+  state.daily[k]=(state.daily[k]||0)+1;state.bal+=e.p;state.hist.push({t:k,p:e.p,at:now()});render();toast(`${k} +${e.p}P 적립`);}
+$("tLogin").onclick=()=>{state.login=!state.login;render();toast(state.login?"로그인됨":"로그아웃됨");};
+$("tDay").onclick=()=>{state.qrToday=false;state.daily={};render();toast("다음 날이 됨. QR 재참여 가능");};
+$("tOut10").onclick=()=>{state.stock.qr10=0;render();toast("QR 10,000원 재고 소진");};
+$("tOut5").onclick=()=>{state.stock.qr5=0;render();toast("QR 5,000원 재고 소진");};
+$("reset").onclick=()=>{document.querySelectorAll(".overlay,.counter,.done").forEach(o=>o.classList.remove("show"));
+  $("boot").hidden=false;$("reopen").hidden=true;rot=0;document.querySelectorAll(".wheel").forEach(w=>w.style.transform="");init();toast("처음 상태로 되돌림");};
+
+init();setView("boot");
+</script>
+</body>
+</html>
